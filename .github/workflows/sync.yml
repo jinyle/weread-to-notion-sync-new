@@ -1,10 +1,5 @@
 name: Sync WeRead to Notion
 
-on:
-  schedule:
-    - cron: "0 12 * * *"  # 北京时间20:00运行
-  workflow_dispatch:      # 允许手动触发
-
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -12,26 +7,64 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: '3.10'
           
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install selenium undetected-chromedriver
+          
+      - name: Get WeRead Token
+        id: get_token
+        run: |
+          python -c "
+          import undetected_chromedriver as uc
+          from selenium.webdriver.common.by import By
+          from selenium.webdriver.support.ui import WebDriverWait
+          from selenium.webdriver.support import expected_conditions as EC
+          import time
+          import json
+
+          options = uc.ChromeOptions()
+          options.headless = True
+          driver = uc.Chrome(options=options)
+          
+          try:
+              driver.get('https://weread.qq.com')
+              
+              # 等待登录按钮出现
+              WebDriverWait(driver, 30).until(
+                  EC.element_to_be_clickable((By.XPATH, '//button[contains(text(), \"登录\")]'))
+              ).click()
+              
+              print('请手动扫码登录 (等待60秒)...')
+              time.sleep(60)
+              
+              # 从localStorage获取Token
+              token = driver.execute_script('return localStorage.getItem(\"wr_skey\")')
+              
+              if token:
+                  print(f'::set-output name=token::{token}')
+                  print('Token 获取成功!')
+              else:
+                  # 尝试从cookie获取
+                  cookies = driver.get_cookies()
+                  for cookie in cookies:
+                      if cookie['name'].startswith('wr_'):
+                          print(f'::set-output name=token::{cookie["value"]}')
+                          print('Cookie Token 获取成功!')
+                          break
+                  else:
+                      raise Exception('未找到有效Token')
+          finally:
+              driver.quit()
+          "
           
       - name: Run synchronization
         env:
-          WR_TOKEN: ${{ secrets.WR_TOKEN }}
+          WR_TOKEN: ${{ steps.get_token.outputs.token }}
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           DATABASE_ID: ${{ secrets.DATABASE_ID }}
         run: python main.py
-        
-      - name: Upload logs
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: sync-logs
-          path: logs/
