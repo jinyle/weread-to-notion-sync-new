@@ -29,13 +29,18 @@ class WeReadAPI:
     def _make_request(self, url):
         """发送API请求"""
         try:
-            response = requests.get(url, headers=self.headers)
+            response = requests.get(url, headers=self.headers, timeout=10)
             if response.status_code == 200:
                 return response.json()
             elif response.status_code == 403:
-                raise Exception("微信读书Token已失效，请重新获取")
+                print("❌ 微信读书Token已失效，请重新获取")
+                print(f"响应内容: {response.text}")
+                return None
             else:
-                raise Exception(f"API请求失败: {response.status_code}")
+                print(f"⚠️ API请求失败: {response.status_code}")
+                print(f"URL: {url}")
+                print(f"响应内容: {response.text}")
+                return None
         except Exception as e:
-            print(f"请求失败: {str(e)}")
+            print(f"⚠️ 请求异常: {str(e)}")
             return None
