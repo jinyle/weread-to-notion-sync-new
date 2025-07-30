@@ -43,15 +43,20 @@ jobs:
           cat requirements.txt
           
       - name: Run synchronization
-        env:
-          WR_TOKEN: ${{ secrets.WR_TOKEN }}
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          DATABASE_ID: ${{ secrets.DATABASE_ID }}
-        run: python main.py
-        
-      - name: Upload logs
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: sync-logs
-          path: logs/
+  env:
+    WR_TOKEN: ${{ secrets.WR_TOKEN }}
+    NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+    DATABASE_ID: ${{ secrets.DATABASE_ID }}
+    DEBUG_MODE: "true"  # 启用详细调试模式
+  run: |
+    # 打印环境变量验证（隐藏敏感信息）
+    echo "WR_TOKEN 存在: ${#WR_TOKEN} 字符"
+    echo "NOTION_TOKEN 存在: ${#NOTION_TOKEN} 字符"
+    echo "DATABASE_ID: $DATABASE_ID"
+    
+    # 运行主程序
+    python main.py
+    
+    # 保存调试信息
+    mkdir -p logs
+    echo "同步完成时间: $(date)" > logs/debug.log
