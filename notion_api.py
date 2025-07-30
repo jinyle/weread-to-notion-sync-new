@@ -13,6 +13,7 @@ class NotionAPI:
             "书名": {"title": [{"text": {"content": book_info.get("title", "未知书名")}}]},
             "作者": {"rich_text": [{"text": {"content": book_info.get("author", "未知作者")}}]},
             "进度": {"number": book_info.get("progress", 0)},
+            "微信读书ID": {"rich_text": [{"text": {"content": book_info.get("bookId", "")}}]},
             "URL": {"url": book_info.get("infoUrl", "")}
         }
         
@@ -27,18 +28,14 @@ class NotionAPI:
                 properties=properties
             )
             print(f"🔄 更新书籍: {book_info['title']}")
+            return {"id": page_id, "url": f"https://notion.so/{page_id.replace('-', '')}"}
         else:
             new_page = self.notion.pages.create(
                 parent={"database_id": self.database_id},
                 properties=properties
             )
-            page_id = new_page["id"]
             print(f"✨ 创建新书籍: {book_info['title']}")
-        
-        # 添加笔记内容
-        self.add_notes_to_page(page_id, notes)
-        
-        return {"id": page_id, "url": f"https://notion.so/{page_id.replace('-', '')}"}
+            return {"id": new_page["id"], "url": new_page["url"]}
     
     def find_page_by_book_id(self, book_id):
         """根据微信读书ID查找页面"""
@@ -55,45 +52,3 @@ class NotionAPI:
             }
         )
         return response["results"][0] if response["results"] else None
-    
-    def add_notes_to_page(self, page_id, notes):
-        """添加笔记到页面"""
-        if not notes or not notes.get("updated"):
-            return
-            
-        # 创建笔记内容
-        children = []
-        for chapter in notes["updated"]:
-            # 添加章节标题
-            if chapter.get("chapterTitle"):
-                children.append({
-                    "object": "block",
-                    "type": "heading_2",
-                    "heading_2": {
-                        "rich_text": [{
-                            "type": "text",
-                            "text": {"content": chapter["chapterTitle"]}
-                        }]
-                    }
-                })
-            
-            # 添加笔记内容
-            for item in chapter.get("bookmarkList", []):
-                children.append({
-                    "object": "block",
-                    "type": "callout",
-                    "callout": {
-                        "rich_text": [{
-                            "type": "text",
-                            "text": {"content": item.get("markText", "")}
-                        }],
-                        "icon": {"emoji": "📌"}
-                    }
-                })
-        
-        # 添加到页面
-        if children:
-            self.notion.blocks.children.append(
-                block_id=page_id,
-                children=children
-            )
