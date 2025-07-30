@@ -31,17 +31,25 @@ def main():
             print("⚠️ 未获取到笔记本数据，请检查Token是否有效")
             return
         
-        # 同步每本书
-        for book in notebooks['books']:
+        print(f"获取到 {len(notebooks['books'])} 本书")
+        
+        # 同步每本书（这里只同步前3本作为测试）
+        for i, book in enumerate(notebooks['books'][:3]):
             book_id = book['bookId']
-            print(f"\n📖 同步书籍: {book['title']} ({book_id})")
+            print(f"\n📖 [{i+1}/3] 同步书籍: {book['title']} ({book_id})")
             
             # 获取书籍详情
             book_info = weread.get_book_info(book_id)
-            
+            if not book_info:
+                print(f"⚠️ 获取书籍详情失败，跳过")
+                continue
+                
             # 获取笔记
             notes = weread.get_book_notes(book_id)
-            
+            if not notes:
+                print("⚠️ 未获取到笔记，跳过")
+                continue
+                
             # 同步到Notion
             notion_page = notion.create_or_update_page(book_info, notes)
             print(f"✅ 已同步到Notion: {notion_page['url']}")
@@ -49,7 +57,7 @@ def main():
             # 避免请求过快
             time.sleep(1)
         
-        print("\n🎉 同步完成！共同步 {} 本书".format(len(notebooks['books'])))
+        print("\n🎉 测试同步完成！")
         
     except Exception as e:
         print(f"❌ 同步失败: {str(e)}")
