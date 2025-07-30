@@ -20,7 +20,27 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          
+          # 确保 requirements.txt 存在
+          if [ ! -f "requirements.txt" ]; then
+            echo "创建默认 requirements.txt 文件"
+            echo "requests==2.31.0" > requirements.txt
+            echo "notion-client==2.4.0" >> requirements.txt
+            echo "python-dotenv==1.0.0" >> requirements.txt
+            echo "selenium==4.21.0" >> requirements.txt
+            echo "webdriver-manager==4.0.1" >> requirements.txt
+          fi
+          
           pip install -r requirements.txt
+          
+      - name: List files (Debug)
+        run: |
+          echo "当前目录:"
+          pwd
+          echo "文件列表:"
+          ls -la
+          echo "requirements.txt 内容:"
+          cat requirements.txt
           
       - name: Run synchronization
         env:
